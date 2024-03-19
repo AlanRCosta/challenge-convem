@@ -1,32 +1,30 @@
-// Create clients and set shared const values outside of the handler.
-
-// Create a DocumentClient that represents the query to add an item
+import { SQSEvent } from "aws-lambda";
 import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { marshall } from "@aws-sdk/util-dynamodb";
-import { randomUUID } from "crypto";
+import { Transaction } from "./transactionType";
+/**
+ *
+ * Event doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-input-format
+ * @param {Object} event - API Gateway Lambda Proxy Input Format
+ *
+ * Return doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html
+ * @returns {Object} object - API Gateway Lambda Proxy Output Format
+ *
+ */
 
 const client = new DynamoDBClient({ maxAttempts: 0 });
 const ddbDocClient = DynamoDBDocumentClient.from(client);
 
-// Get the DynamoDB table name from environment variables
 const tableName = process.env.SAMPLE_TABLE;
 
-/**
- * A simple example includes a HTTP get method to get one item by id from a DynamoDB table.
- */
-export const sqsConsumerHandler = async (event) => {
+export const lambdaHandler = async (event: SQSEvent): Promise<void> => {
   console.info("received:", event);
 
   for (const rec of event.Records) {
     try {
-      const item = {
+      const item: Transaction = {
         ...JSON.parse(rec.body),
-        id: randomUUID(),
-        timestamps: {
-          ddb: new Date().toISOString(),
-          sqs: new Date(parseInt(rec.attributes.SentTimestamp)).toISOString(),
-        },
       };
 
       // Try saving the item to the destination DynamoDB table
@@ -38,8 +36,7 @@ export const sqsConsumerHandler = async (event) => {
       );
     } catch (err) {
       console.log(err);
-      return { batchItemFailures: 1 };
+      // return { batchItemFailures: 1 };
     }
   }
-  // All log statements are written to CloudWatch
 };
