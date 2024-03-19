@@ -1,0 +1,139 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: challenge
+Transform:
+- AWS::Serverless-2016-10-31
+Resources:
+  getAllItemsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+        - retrieveTransactionsFunction.ts
+        Minify: true
+        Sourcemap: true
+        Target: es2020
+      SamResourceId: getAllItemsFunction
+    Properties:
+      CodeUri: getAllItemsFunction
+      Handler: retrieveTransactionsFunction.lambdaHandler
+      Runtime: nodejs20.x
+      Architectures:
+      - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: A simple example includes a HTTP get method to get all items from
+        a DynamoDB table.
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: SampleTable
+      Environment:
+        Variables:
+          SAMPLE_TABLE:
+            Ref: SampleTable
+          NODE_OPTIONS: ' --enable-source-maps'
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /
+            Method: GET
+  sqsConsumer:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+        - sqsConsumerFunction.ts
+        Minify: true
+        Sourcemap: true
+        Target: es2020
+      SamResourceId: sqsConsumer
+    Properties:
+      CodeUri: sqsConsumer
+      Handler: sqsConsumerFunction.lambdaHandler
+      Runtime: nodejs20.x
+      Architectures:
+      - x86_64
+      MemorySize: 128
+      Timeout: 30
+      Description: A simple example includes a HTTP get method to get one item by
+        id from a DynamoDB table.
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: SampleTable
+      Environment:
+        Variables:
+          SAMPLE_TABLE:
+            Ref: SampleTable
+          NODE_OPTIONS: ' --enable-source-maps'
+      Events:
+        IngressSQSEvent:
+          Type: SQS
+          Properties:
+            Queue:
+              Fn::GetAtt:
+              - SimpleQueue
+              - Arn
+            FunctionResponseTypes:
+            - ReportBatchItemFailures
+            MaximumBatchingWindowInSeconds: 2
+            ScalingConfig:
+              MaximumConcurrency: 2
+  putItemFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+        - enqueueTransactionFunction.ts
+        Minify: true
+        Sourcemap: true
+        Target: es2020
+      SamResourceId: putItemFunction
+    Properties:
+      CodeUri: putItemFunction
+      Handler: enqueueTransactionFunction.lambdaHandler
+      Runtime: nodejs20.x
+      Architectures:
+      - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: A simple example includes a HTTP post method to add one item to
+        a DynamoDB table.
+      Environment:
+        Variables:
+          QUEUE_URL:
+            Fn::GetAtt:
+            - SimpleQueue
+            - QueueUrl
+          NODE_OPTIONS: ' --enable-source-maps'
+      Policies:
+      - SQSSendMessagePolicy:
+          QueueName:
+            Fn::GetAtt:
+            - SimpleQueue
+            - QueueName
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /
+            Method: POST
+  SampleTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: idempotencyId
+        Type: String
+  SimpleQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: transaction-queue
+Outputs:
+  WebEndpoint:
+    Description: API Gateway endpoint URL for Prod stage
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/
