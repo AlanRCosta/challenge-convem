@@ -27,7 +27,6 @@ export const lambdaHandler = async (
     return { statusCode: 400, body: "" };
   }
 
-  // All log statements are written to CloudWatch
   console.info("received:", event);
 
   try {

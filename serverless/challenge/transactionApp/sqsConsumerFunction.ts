@@ -36,7 +36,6 @@ export const lambdaHandler = async (event: SQSEvent): Promise<void> => {
       );
     } catch (err) {
       console.log(err);
-      // return { batchItemFailures: 1 };
     }
   }
 };
