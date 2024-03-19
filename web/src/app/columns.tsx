@@ -3,14 +3,14 @@
 import { ColumnDef } from '@tanstack/react-table';
 
 export type Transaction = {
-  idemPotencyId: string;
+  idempotencyId: string;
   amount: number;
   type: 'credit' | 'debit';
 };
 
 export const columns: ColumnDef<Transaction>[] = [
   {
-    accessorKey: 'idemPotencyId',
+    accessorKey: 'idempotencyId',
     header: 'ID',
   },
   {

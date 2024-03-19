@@ -1,14 +1,16 @@
-import { v4 as uuidv4 } from 'uuid';
-
 import { Transaction, columns } from './columns';
 import { DataTable } from '../components/data-table';
 
 async function getData(): Promise<Transaction[]> {
-  return new Array(50).fill(null).map(() => ({
-    idemPotencyId: uuidv4(),
-    amount: Math.random() * 1000,
-    type: Math.random() < 0.5 ? 'debit' : 'credit',
-  }));
+  const res = await fetch(
+    'https://3j2a15f3bb.execute-api.us-east-2.amazonaws.com/Prod',
+  );
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch data');
+  }
+  const response = await res.json();
+  return response;
 }
 
 export default async function Page() {
